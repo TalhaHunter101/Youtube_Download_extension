@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Extension Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover { background: #0056b3; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>🎬 YouTube Downloader Extension Test</h1>
+    
+    <div class="test-section info">
+        <h2>📋 Pre-Test Checklist</h2>
+        <ul>
+            <li>✅ Backend server running on port 4000</li>
+            <li>✅ Extension loaded in Chrome</li>
+            <li>✅ yt-dlp installed and working</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h2>🔧 Backend API Test</h2>
+        <p>Test the backend API directly:</p>
+        <button onclick="testBackend()">Test Backend API</button>
+        <div id="backendResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>🎯 Extension Test Instructions</h2>
+        <ol>
+            <li>Go to a YouTube video page (e.g., <a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ" target="_blank">Rick Astley - Never Gonna Give You Up</a>)</li>
+            <li>Click the extension icon in your browser toolbar</li>
+            <li>You should see:
+                <ul>
+                    <li>✅ Real video title</li>
+                    <li>✅ Multiple quality options with file sizes</li>
+                    <li>✅ Working download button</li>
+                </ul>
+            </li>
+            <li>Select a quality and click "Download Video"</li>
+            <li>Chrome should start downloading an actual MP4/WebM file</li>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h2>🐛 Common Issues & Solutions</h2>
+        <ul>
+            <li><strong>"Unable to load video information"</strong> → Make sure backend is running</li>
+            <li><strong>"Failed to fetch"</strong> → Check if localhost:4000 is accessible</li>
+            <li><strong>"No formats found"</strong> → Video might be region-locked or private</li>
+            <li><strong>Download fails</strong> → Check browser console for errors</li>
+        </ul>
+    </div>
+
+    <script>
+        async function testBackend() {
+            const resultDiv = document.getElementById('backendResult');
+            resultDiv.innerHTML = '<p>Testing backend...</p>';
+            
+            try {
+                const response = await fetch('http://localhost:4000/getDownload', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ videoId: 'dQw4w9WgXcQ' })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        <h3>✅ Backend API Working!</h3>
+                        <p><strong>Title:</strong> ${data.title}</p>
+                        <p><strong>Formats available:</strong> ${data.formats.length}</p>
+                        <p><strong>Best quality:</strong> ${data.best?.quality || 'Unknown'}</p>
+                        <details>
+                            <summary>View full response</summary>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </details>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Backend API Error</h3>
+                        <p><strong>Error:</strong> ${error.message}</p>
+                        <p><strong>Solution:</strong> Make sure the backend server is running:</p>
+                        <pre>cd backend && npm start</pre>
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html> 
