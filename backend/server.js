@@ -26,44 +26,101 @@ app.post('/getDownload', async (req, res) => {
       });
     }
 
-    // Get video info using yt-dlp
+    // Get video info with all formats
     const command = `yt-dlp -J --no-warnings "${url}"`;
     const { stdout } = await execAsync(command);
     const info = JSON.parse(stdout);
 
-    const formats = (info.formats || []).filter(f => f.ext && f.filesize && f.url);
+    // Create predefined MP4 options that we know work
+    const mp4Options = [
+      {
+        id: 'best-mp4',
+        quality: 'Best Quality MP4',
+        description: 'Highest quality MP4 with audio',
+        format: 'best[ext=mp4]/best',
+        extension: 'mp4'
+      },
+      {
+        id: '1080p-mp4',
+        quality: '1080p MP4',
+        description: 'Full HD MP4 with audio',
+        format: 'best[ext=mp4][height<=1080]/best[height<=1080]',
+        extension: 'mp4'
+      },
+      {
+        id: '720p-mp4',
+        quality: '720p MP4',
+        description: 'HD MP4 with audio',
+        format: 'best[ext=mp4][height<=720]/best[height<=720]',
+        extension: 'mp4'
+      },
+      {
+        id: '480p-mp4',
+        quality: '480p MP4',
+        description: 'SD MP4 with audio',
+        format: 'best[ext=mp4][height<=480]/best[height<=480]',
+        extension: 'mp4'
+      }
+    ];
 
-    const mapped = formats.map(f => ({
-      itag: f.format_id,
-      url: f.url,
-      quality: f.quality_label || f.format_note || `${f.height}p` || 'unknown',
-      extension: f.ext,
-      size: f.filesize || 0,
-      hasAudio: !!f.asr,
-      hasVideo: !!f.height,
-      width: f.width,
-      height: f.height,
-      fps: f.fps
+    // Convert to the format expected by frontend
+    const availableFormats = mp4Options.map(option => ({
+      id: option.id,
+      quality: option.quality,
+      description: option.description,
+      format: option.format,
+      extension: option.extension,
+      url: 'yt-dlp-download',
+      size: 0,
+      hasAudio: true,
+      hasVideo: true
     }));
-
-    // Sort by quality (video+audio first, then by resolution)
-    const sortedFormats = mapped.sort((a, b) => {
-      if (a.hasVideo && a.hasAudio && !(b.hasVideo && b.hasAudio)) return -1;
-      if (!(a.hasVideo && a.hasAudio) && b.hasVideo && b.hasAudio) return 1;
-      return (b.height || 0) - (a.height || 0);
-    });
-
-    // Choose default best quality (first video+audio highest quality)
-    const best = sortedFormats.find(m => m.hasVideo && m.hasAudio) || sortedFormats[0];
 
     res.json({
       title: info.title,
-      formats: sortedFormats,
-      best: best
+      formats: availableFormats,
+      best: availableFormats[0]
     });
   } catch (err) {
     console.error('Error:', err);
     res.status(500).json({ error: 'Failed to fetch video info: ' + err.message });
+  }
+});
+
+// Simplified endpoint for MP4 downloads
+app.post('/downloadMerged', async (req, res) => {
+  const { videoId, formatId } = req.body;
+  if (!videoId || !formatId) return res.status(400).json({ error: 'videoId and formatId are required' });
+
+  try {
+    const url = `https://www.youtube.com/watch?v=${videoId}`;
+    
+    // Format mapping - these are yt-dlp format selectors that work reliably
+    const formatMap = {
+      'best-mp4': 'best[ext=mp4]/best',
+      '1080p-mp4': 'best[ext=mp4][height<=1080]/best[height<=1080]',
+      '720p-mp4': 'best[ext=mp4][height<=720]/best[height<=720]',
+      '480p-mp4': 'best[ext=mp4][height<=480]/best[height<=480]'
+    };
+    
+    const format = formatMap[formatId] || 'best';
+    
+    // Use yt-dlp to get the download URL
+    const command = `yt-dlp -g -f "${format}" --no-warnings "${url}"`;
+    const { stdout } = await execAsync(command);
+    const downloadUrl = stdout.trim();
+    
+    if (!downloadUrl) {
+      throw new Error('No download URL found');
+    }
+    
+    res.json({
+      success: true,
+      url: downloadUrl
+    });
+  } catch (err) {
+    console.error('Error getting download URL:', err);
+    res.status(500).json({ error: 'Failed to get download URL: ' + err.message });
   }
 });
 

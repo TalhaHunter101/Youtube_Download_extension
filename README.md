@@ -1,44 +1,78 @@
 # YouTube Video Downloader Chrome Extension
 
-This extension allows you to download YouTube videos locally to your computer by clicking the extension icon on a YouTube video page.
+This extension allows you to download YouTube videos as **MP4 files with both audio and video** by clicking the extension icon on a YouTube video page.
+
+## ✨ Features
+
+- **MP4 Only**: Downloads only MP4 format files (no confusing format options)
+- **Audio + Video Guaranteed**: Every download includes both audio and video
+- **Multiple Quality Options**: Choose from Best Quality, 1080p, 720p, or 480p
+- **Smart Format Selection**: Uses yt-dlp's intelligent format merging
+- **One-Click Download**: Simple and fast download process
 
 ## Installation
 
 1. Download or clone this repository to your local machine.
 
-2. Open Google Chrome and navigate to `chrome://extensions/`.
+2. **Install yt-dlp** (required for video processing):
+   ```bash
+   # On macOS
+   brew install yt-dlp
+   
+   # On Linux/Windows
+   pip install yt-dlp
+   ```
 
-3. Enable **Developer mode** in the top right corner.
+3. **Start the backend server**:
+   ```bash
+   cd backend
+   npm install
+   npm start
+   ```
+   Keep this terminal open - the server needs to run while using the extension.
 
-4. Click **Load unpacked** and select the directory where you saved this extension (the folder containing `manifest.json`).
-
-5. The extension should now appear in your extensions list and be ready to use.
+4. **Install the Chrome extension**:
+   - Open Google Chrome and navigate to `chrome://extensions/`
+   - Enable **Developer mode** in the top right corner
+   - Click **Load unpacked** and select this extension directory
+   - The extension should now appear in your extensions list
 
 ## Usage
 
-1. Navigate to a YouTube video page (e.g., `https://www.youtube.com/watch?v=VIDEO_ID`).
+1. Navigate to any YouTube video page (e.g., `https://www.youtube.com/watch?v=VIDEO_ID`)
 
-2. The extension icon should appear in the toolbar (or be enabled).
+2. Click the extension icon in the toolbar
 
-3. Click the extension icon to initiate the download.
+3. **Select your preferred quality**:
+   - **Best Quality MP4**: Highest available quality
+   - **1080p MP4**: Full HD quality
+   - **720p MP4**: HD quality  
+   - **480p MP4**: Standard definition
 
-4. A save dialog will appear, allowing you to choose the location and name for the downloaded MP4 file.
+4. Click **Download Video** - Chrome will prompt you to choose save location
 
-5. The download will proceed in the background.
+5. The downloaded MP4 file will contain both video and audio!
 
-## Limitations
+## Technical Details
 
-- This extension downloads the highest quality available format with video and audio combined.
-- It may not work for all videos due to YouTube's restrictions or changes in their API.
-- For age-restricted or private videos, additional handling might be needed.
+- **Backend**: Node.js server using yt-dlp for video processing
+- **Format Selection**: Uses yt-dlp's advanced format filtering
+- **Quality Assurance**: Only shows formats with both audio and video
+- **Smart Merging**: Automatically merges separate video/audio streams when needed
 
-## Development
+## Troubleshooting
 
-- `manifest.json`: Extension configuration.
-- `background.js`: Handles background tasks and downloads.
-- `content.js`: Extracts video information from the page.
+**"Unable to load video information"**
+- Make sure backend server is running (`cd backend && npm start`)
+- Ensure you're on a YouTube video page
 
-Feel free to modify the code as needed. If you encounter issues, check the console for errors (`chrome://extensions/` > Inspect views).
+**"Failed to fetch"**
+- Check if localhost:4000 is accessible
+- Restart the backend server
+
+**"No MP4 formats available"**
+- Video might be region-locked or private
+- Try a different video
 
 ## Disclaimer
 

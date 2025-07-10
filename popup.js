@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   let selectedFormat = null;
   let videoTitle = 'Unknown Video';
+  let videoId = null;
 
   try {
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -18,7 +19,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     const urlObj = new URL(currentTab.url);
-    const videoId = urlObj.searchParams.get('v');
+    videoId = urlObj.searchParams.get('v');
     if (!videoId) {
       throw new Error('No video ID found in URL');
     }
@@ -54,7 +55,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const formats = data.formats || [];
     
     if (formats.length === 0) {
-      throw new Error('No downloadable formats found for this video');
+      throw new Error('No MP4 formats available for this video');
     }
 
     displayVideoInfo(videoTitle, formats);
@@ -71,15 +72,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     qualityOptionsEl.innerHTML = '';
     
-    // Filter and sort formats
-    const validFormats = formats.filter(f => f.url && f.size > 0);
-    
-    if (validFormats.length === 0) {
-      showError('No valid formats available for download');
-      return;
-    }
-
-    validFormats.forEach((f, idx) => {
+    // All formats are MP4 with audio+video
+    formats.forEach((f, idx) => {
       const option = document.createElement('div');
       option.className = 'quality-option';
 
@@ -94,13 +88,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
 
       const label = document.createElement('label');
-      const sizeText = f.size ? `${(f.size/1048576).toFixed(1)} MB` : 'Unknown size';
-      const qualityText = f.quality || 'Unknown quality';
-      const extensionText = f.extension ? f.extension.toUpperCase() : 'Unknown';
-      
       label.innerHTML = `
-        <span class='quality-label-text'>${qualityText}</span> 
-        <span class='quality-details'>${sizeText} ${extensionText}</span>
+        <span class='quality-label-text'>${f.quality}</span> 
+        <span class='quality-details'>MP4 with Audio</span>
       `;
 
       option.appendChild(radio);
@@ -120,15 +110,37 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (!selectedFormat) return;
       
       downloadBtn.disabled = true;
-      downloadBtn.textContent = 'Downloading...';
+      downloadBtn.textContent = 'Preparing download...';
       
       try {
         const cleanTitle = videoTitle.replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '_');
-        const filename = `${cleanTitle}_${selectedFormat.quality}.${selectedFormat.extension}`;
+        const cleanQuality = selectedFormat.quality.replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '_');
+        const filename = `${cleanTitle}_${cleanQuality}.mp4`;
+        
+        // Get the download URL from backend
+        const mergedResp = await fetch('http://localhost:4000/downloadMerged', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            videoId: videoId, 
+            formatId: selectedFormat.id 
+          })
+        });
+        
+        if (!mergedResp.ok) {
+          throw new Error('Failed to get download URL');
+        }
+        
+        const mergedData = await mergedResp.json();
+        if (!mergedData.success) {
+          throw new Error('Failed to prepare download');
+        }
+        
+        downloadBtn.textContent = 'Starting download...';
         
         const resp = await chrome.runtime.sendMessage({ 
           type: 'download', 
-          url: selectedFormat.url, 
+          url: mergedData.url, 
           filename 
         });
         
